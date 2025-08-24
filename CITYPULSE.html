@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>City Pulse Bangladesh — Premium Demo (Sylhet Focus)</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet & Heat (load BEFORE our script; use defer to keep order) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <!-- Chart.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#031024; --panel:#071726; --accent:#00ffd0; --accent2:#00c6ff; --text:#e9fbff;
+      --muted:#9ecbd2; --danger:#ff6b6b; --ok:#2ee6a6; --line:#0f344f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:linear-gradient(#021025,#030914); color:var(--text); -webkit-font-smoothing:antialiased;}
+    header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:rgba(3,10,20,.6);border-bottom:1px solid rgba(0,120,120,.08);position:sticky;top:0;z-index:10;backdrop-filter: blur(6px)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:grid;place-items:center;color:#012;font-weight:800;font-family:Orbitron}
+    nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .nav-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer;transition:.2s}
+    .nav-btn:hover{border-color:rgba(255,255,255,.2)}
+    .nav-btn.active{border-color:var(--accent);box-shadow:0 0 12px rgba(0,255,200,0.18)}
+    main{max-width:1180px;margin:20px auto;padding:0 16px}
+    .page{display:none}
+    .page.visible{display:block}
+    .card{background:linear-gradient(180deg,#081427,#071724);border:1px solid rgba(10,50,80,.3);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,200,180,0.06)}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+    .grid-2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+    @media (max-width:980px){.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
+    h1,h2,h3{margin:0}
+    .hero{padding:12px;border-radius:10px;border:1px dashed rgba(10,50,80,.3);margin-bottom:12px}
+    .meter{height:12px;background:#071d2a;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
+    .meter>span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .7s}
+    .meter.warn>span{background:linear-gradient(90deg,#ffd166,var(--accent))}
+    .meter.danger>span{background:linear-gradient(90deg,#ff8a8a,#ff4d4d)}
+    .kpi-value{margin-top:8px;font-weight:700}
+    .map{height:320px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-top:8px}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+    .btn{background:linear-gradient(90deg,var(--accent2),var(--accent));border:none;color:#012;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.14);color:var(--text)}
+    .btn.danger{background:linear-gradient(90deg,#ff7a7a,#ff4d4d);color:#210}
+    .input, select, textarea{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:var(--text);width:100%}
+    .q-card{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);margin-bottom:8px;background:rgba(6,20,35,.6)}
+    .table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    .table thead th{color:#9fc7d2;text-align:left;padding:6px}
+    .table td{padding:8px;background:linear-gradient(180deg,#081a26,#061423);border:1px solid rgba(255,255,255,.06)}
+    .mission-list{list-style:none;padding:0;margin:0}
+    .mission-list li{padding:6px 0}
+    .muted{color:#95bfc6;font-size:13px}
+    footer{max-width:1180px;margin:10px auto 40px;padding:0 16px;color:#8fbfd6;text-align:center}
+    .flex{display:flex;gap:8px;align-items:center}
+    .progress{height:12px;background:#071d2a;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
+    .progress>div{height:100%;width:0;background:linear-gradient(90deg,#76ff03,#00ffc7);transition:width .3s}
+    .pill{border-radius:999px;padding:.45rem .8rem}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,255,208,.08);border:1px solid rgba(0,255,208,.25);padding:6px 10px;border-radius:999px;margin:4px 6px}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:#19ffaa;display:inline-block;box-shadow:0 0 8px #19ffaa}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">CP</div>
+      <div>
+        <h1>City Pulse Bangladesh</h1>
+        <div class="muted">Powered by BOT BUDDIES BANGLADESH • <span class="status-dot"></span> demo online</div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+      <button class="nav-btn" data-page="maps">Heatmaps</button>
+      <button class="nav-btn" data-page="actions">Action Engine</button>
+      <button class="nav-btn" data-page="report">Report</button>
+      <button class="nav-btn" data-page="quiz">Quiz</button>
+      <button class="nav-btn" data-page="leaderboard">Leaderboard</button>
+      <button class="nav-btn" data-page="awareness">Awareness</button>
+      <button class="nav-btn" data-page="kids">Kids Corner</button>
+      <button class="nav-btn" data-page="badges">Badges</button>
+      <button class="nav-btn" data-page="cityhub">City Hub</button>
+      <button class="nav-btn" data-page="global">Global Compare</button>
+      <button id="btn-emergency" class="btn danger">Emergency</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="page visible">
+      <div class="hero card">
+        <h2>City Pulse — Demo Mode (Sylhet Focus)</h2>
+        <div class="muted">Working buttons, working navigation, working heatmaps, working charts. Add API keys later for live data.</div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="muted">City Health Score</div>
+          <div class="meter"><span id="health-fill"></span></div>
+          <div class="kpi-value" id="health-text">—</div>
+        </div>
+        <div class="card">
+          <div class="muted">Wildfire Risk</div>
+          <div class="meter danger"><span id="wildfire-fill"></span></div>
+          <div class="kpi-value" id="wildfire-text">—</div>
+        </div>
+        <div class="card">
+          <div class="muted">Air Quality (AQI)</div>
+          <div class="meter warn"><span id="aqi-fill"></span></div>
+          <div class="kpi-value" id="aqi-text">—</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>24h Trends</h3>
+          <canvas id="trendChart" height="140"></canvas>
+        </div>
+        <div class="card">
+          <h3>Operations Snapshot</h3>
+          <div class="muted">Microplastics • Filters • Uptime</div>
+          <ul style="list-style:none;padding:0;margin-top:8px">
+            <li class="flex"><div class="muted">Microplastics</div><strong id="op-micro">—</strong></li>
+            <li class="flex"><div class="muted">Filter Efficiency</div><strong id="op-eff">—</strong></li>
+            <li class="flex"><div class="muted">Uptime</div><strong id="op-uptime">—</strong></li>
+          </ul>
+          <div style="margin-top:10px" class="progress"><div id="op-progress"></div></div>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="card"><h4>Microplastics</h4><div id="stat-micro">—</div></div>
+        <div class="card"><h4>Noise (dB)</h4><div id="stat-noise">—</div></div>
+        <div class="card"><h4>Water Quality</h4><div id="stat-water">—</div></div>
+        <div class="card"><h4>Soil Health</h4><div id="stat-soil">—</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>NASA Air Quality (demo)</h3>
+          <div id="nasa-aqi">Loading demo AQI...</div>
+          <canvas id="nasaChart" height="120"></canvas>
+        </div>
+        <div class="card">
+          <h3>City Mission Status</h3>
+          <ul id="missions" class="mission-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAPS -->
+    <section id="maps" class="page">
+      <div class="card">
+        <h3>Heatmaps (Sylhet centered)</h3>
+        <div class="maps-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+          <div>
+            <div class="muted">Air Pollution</div>
+            <div id="map-air" class="map"></div>
+          </div>
+          <div>
+            <div class="muted">Microplastics</div>
+            <div id="map-micro" class="map"></div>
+          </div>
+          <div>
+            <div class="muted">Noise</div>
+            <div id="map-noise" class="map"></div>
+          </div>
+          <div>
+            <div class="muted">Water</div>
+            <div id="map-water" class="map"></div>
+          </div>
+          <div style="grid-column:1/-1">
+            <div class="muted">Soil Pollution</div>
+            <div id="map-soil" class="map"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTIONS -->
+    <section id="actions" class="page">
+      <div class="card">
+        <h3>Action Engine</h3>
+        <div class="controls">
+          <button class="btn ghost pill active" data-layer="air">Air</button>
+          <button class="btn ghost pill" data-layer="micro">Micro</button>
+          <button class="btn ghost pill" data-layer="noise">Noise</button>
+          <button class="btn ghost pill" data-layer="water">Water</button>
+          <button class="btn ghost pill" data-layer="soil">Soil</button>
+        </div>
+        <div id="action-suggestions"></div>
+      </div>
+
+      <div class="card">
+        <h3>Scheduled Actions</h3>
+        <ul id="scheduled" class="mission-list"></ul>
+        <div style="margin-top:8px">
+          <button id="clear-sched" class="btn ghost">Clear all</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Impact Tracker</h3>
+        <canvas id="impactChart" height="120"></canvas>
+      </div>
+    </section>
+
+    <!-- REPORT -->
+    <section id="report" class="page">
+      <div class="card">
+        <h3>Report an issue (citizen)</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <form id="report-form">
+            <label>Category<br/>
+              <select id="rep-type" class="input">
+                <option>Air</option><option>Microplastics</option><option>Noise</option><option>Water</option><option>Soil</option>
+              </select>
+            </label>
+            <label>Description<br/>
+              <textarea id="rep-desc" class="input" rows="4" placeholder="Describe the issue"></textarea>
+            </label>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input id="rep-lat" class="input" placeholder="lat (24.90)"/>
+              <input id="rep-lng" class="input" placeholder="lng (91.87)"/>
+            </div>
+            <div style="margin-top:8px">
+              <button class="btn" type="submit">Submit report</button>
+            </div>
+          </form>
+          <div>
+            <div id="map-report" class="map"></div>
+            <div style="margin-top:8px">
+              <h4>Recent reports</h4>
+              <ul id="report-list" class="mission-list"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz" class="page">
+      <div class="card">
+        <h3>City Awareness Quiz <span class="muted">— 10 questions • 10 pts</span></h3>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input id="player" class="input" placeholder="Your name"/>
+          <button id="start" class="btn">Start</button>
+          <div class="progress" style="flex:1"><div id="quiz-progress"></div></div>
+        </div>
+        <div id="quiz-area"></div>
+        <div style="margin-top:8px">
+          <button id="submit-quiz" class="btn ghost" disabled>Submit</button>
+          <span id="quiz-score" style="margin-left:10px;font-weight:800"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEADERBOARD -->
+    <section id="leaderboard" class="page">
+      <div class="card">
+        <h3>Leaderboard</h3>
+        <table class="table">
+          <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Date</th></tr></thead>
+          <tbody id="lb-body"></tbody>
+        </table>
+        <div style="margin-top:8px">
+          <button id="reset-lb" class="btn danger">Reset Leaderboard</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AWARENESS -->
+    <section id="awareness" class="page">
+      <div class="card">
+        <h2>📣 Awareness — Feel it. Fix it.</h2>
+        <p class="muted" style="margin-top:6px">
+          Bangladesh is at the frontline of climate change. Every action you take today can protect a child’s lungs, keep a school flood-free, and bring shade to an elder’s walk.
+        </p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Stories that hit the heart</h3>
+          <ul class="mission-list" id="awareness-stories"></ul>
+          <div style="margin-top:10px">
+            <button id="btn-pledge" class="btn">I Pledge 1 Action Today (+5 pts)</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Climate Trend (demo)</h3>
+          <canvas id="awarenessChart" height="140"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- KIDS -->
+    <section id="kids" class="page">
+      <div class="card">
+        <h2>🧒 Kids Corner — Mini Quiz</h2>
+        <div class="q-card">
+          <div><strong>1.</strong> Which bag is eco-friendly?</div>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button class="btn ghost" data-kid="wrong">Plastic Bag</button>
+            <button class="btn" data-kid="correct">Cloth Bag (+3)</button>
+          </div>
+        </div>
+        <div class="q-card">
+          <div><strong>2.</strong> Best way to travel to school nearby?</div>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button class="btn ghost" data-kid="wrong">Car alone</button>
+            <button class="btn" data-kid="correct">Walk/Cycle (+3)</button>
+          </div>
+        </div>
+        <div id="kids-result" class="muted" style="margin-top:6px"></div>
+      </div>
+    </section>
+
+    <!-- BADGES -->
+    <section id="badges" class="page">
+      <div class="card">
+        <h2>🏆 Your Badges</h2>
+        <div id="badge-wrap" style="margin-top:10px"></div>
+        <div class="muted" style="margin-top:6px">Earn points via Awareness Pledge, Kids Corner, and scheduling Actions.</div>
+      </div>
+    </section>
+
+    <!-- CITY HUB -->
+    <section id="cityhub" class="page">
+      <div class="card">
+        <h2>🏙️ City Hub</h2>
+        <div class="controls" style="margin-top:8px">
+          <select id="city-select" class="input" style="max-width:320px"></select>
+          <button id="save-city" class="btn">Save City</button>
+        </div>
+        <div class="grid-2" style="margin-top:10px">
+          <div class="card">
+            <h3>City Overview</h3>
+            <div id="city-summary" class="muted">Pick your city to see personalized stats.</div>
+            <div id="map-city" class="map"></div>
+          </div>
+          <div class="card">
+            <h3>Quick Missions</h3>
+            <button class="btn pill" data-mission="10">🌳 Plant a Tree (+10)</button>
+            <button class="btn pill" data-mission="5">♻️ Recycle (+5)</button>
+            <button class="btn pill" data-mission="7">🚶 Walk/Cycle (+7)</button>
+            <div class="muted" style="margin-top:8px">Your Points: <span id="user-points">0</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GLOBAL COMPARE -->
+    <section id="global" class="page">
+      <div class="card">
+        <h2>🌐 Global Compare (Demo)</h2>
+        <div class="muted">Your city vs others across AQI / Noise / Water / Soil (demo data).</div>
+        <canvas id="globalChart" height="160" style="margin-top:10px"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="muted">City Pulse Bangladesh — Powered by BOT BUDDIES BANGLADESH</div>
+  </footer>
+
+  <!-- APP SCRIPT -->
+  <script>
+  // Run AFTER all libraries are available
+  document.addEventListener('DOMContentLoaded', () => {
+    // ---------- Helpers ----------
+    const q = (s)=>document.querySelector(s);
+    const qAll = (s)=>document.querySelectorAll(s);
+    const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+    const fmt = (n)=>Number(n).toLocaleString();
+
+    // ---------- SPA nav ----------
+    const pages = qAll('.page');
+    qAll('.nav-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        qAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const page = btn.dataset.page;
+        pages.forEach(p=>p.classList.remove('visible'));
+        const target = q('#'+page);
+        if(target){ target.classList.add('visible'); }
+
+        // when switching to maps/city, fix Leaflet size issues
+        if(page==='maps'){ lazyInitHeatmaps(); setTimeout(() => invalidateAllMaps(), 60); }
+        if(page==='report'){ lazyInitReportMap(); setTimeout(() => reportMap && reportMap.invalidateSize(), 60); }
+        if(page==='cityhub'){ lazyInitCityHub(); setTimeout(() => cityMap && cityMap.invalidateSize(), 60); }
+        if(page==='awareness'){ lazyInitAwareness(); }
+        if(page==='kids'){ lazyInitKids(); }
+        if(page==='global'){ lazyInitGlobalCompare(); }
+        if(page==='badges'){ renderBadges(); }
+      });
+    });
+
+    // ---------- DEMO CENTER (Sylhet) ----------
+    const CENTER = [24.8949, 91.8687]; // Sylhet
+    // more hotspots around Sylhet
+    const DEMO = {
+      air:   [[24.896,91.870,.82],[24.902,91.876,.65],[24.889,91.862,.74],[24.905,91.880,.58],[24.892,91.874,.69]],
+      micro: [[24.897,91.872,.58],[24.900,91.866,.71],[24.888,91.870,.67],[24.906,91.861,.63]],
+      noise: [[24.901,91.871,.62],[24.896,91.878,.73],[24.889,91.868,.59],[24.905,91.873,.68]],
+      water: [[24.893,91.865,.44],[24.898,91.879,.52],[24.890,91.873,.61],[24.904,91.867,.46]],
+      soil:  [[24.895,91.875,.35],[24.891,91.872,.44],[24.899,91.870,.52],[24.907,91.869,.39]]
+    };
+
+    // ---------- KPIs & Trend ----------
+    function updateKPIs(){
+      const health = 84; const wf = 6; const aqi = 92;
+      q('#health-fill').style.width = health + '%'; q('#health-text').textContent = health + '/100 Healthy';
+      q('#wildfire-fill').style.width = wf + '%'; q('#wildfire-text').textContent = wf + '% Risk';
+      q('#aqi-fill').style.width = clamp(aqi,0,100) + '%'; q('#aqi-text').textContent = aqi + ' AQI';
+      q('#stat-micro').textContent = '112'; q('#stat-noise').textContent = '69'; q('#stat-water').textContent = 'Moderate'; q('#stat-soil').textContent = 'Good';
+      q('#op-micro').textContent = '↓ 14% vs yesterday'; q('#op-eff').textContent = '95.8%'; q('#op-uptime').textContent = '99.4%';
+      q('#op-progress').style.width = '95%';
+
+      const labels = Array.from({length:24}, (_,i)=>i + ':00');
+      const aqiSeries = labels.map((_,i)=>78 + Math.round(Math.sin(i/3)*10 + Math.random()*6));
+      const noiseSeries = labels.map((_,i)=>60 + Math.round(Math.cos(i/4)*7 + Math.random()*4));
+      const waterSeries = labels.map((_,i)=>60 + Math.round(Math.sin(i/5)*5 + Math.random()*3));
+      createTrendChart(labels, [aqiSeries, noiseSeries, waterSeries]);
+    }
+
+    let trendChart = null;
+    function createTrendChart(labels, seriesArr){
+      const ctx = q('#trendChart').getContext('2d');
+      if(trendChart) trendChart.destroy();
+      trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {label:'AQI', data: seriesArr[0], borderColor:'#00ffd0', tension:0.3, fill:false},
+            {label:'Noise dB', data: seriesArr[1], borderColor:'#ffd166', tension:0.3, fill:false},
+            {label:'Water Index', data: seriesArr[2], borderColor:'#76ff03', tension:0.3, fill:false},
+          ]
+        },
+        options:{responsive:true, plugins:{legend:{labels:{color:'#cfefff'}}}, scales:{x:{ticks:{color:'#9ec3e3'}}, y:{ticks:{color:'#9ec3e3'}}}}
+      });
+    }
+
+    // ---------- NASA demo ----------
+    let nasaChart = null;
+    function loadNasaDemo(){
+      const labels = ['D-6','D-5','D-4','D-3','D-2','D-1','Today'];
+      const series = [72,78,81,79,86,92,89];
+      q('#nasa-aqi').textContent = 'NASA AQI (demo): ' + series[series.length-1];
+      const ctx = q('#nasaChart').getContext('2d');
+      if(nasaChart) nasaChart.destroy();
+      nasaChart = new Chart(ctx, { type: 'bar', data: { labels, datasets:[{label:'AQI', data: series, backgroundColor:'#00c6ff'}] }, options:{responsive:true, plugins:{legend:{display:false}}}});
+    }
+
+    // ---------- Heatmaps ----------
+    let mapAir,mapMicro,mapNoise,mapWater,mapSoil;
+    function initHeatmaps(){
+      const addTiles = (map)=> L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution:'&copy; CARTO', maxZoom:19 }).addTo(map);
+      const make = (el, data, grad)=>{
+        const m = L.map(el, {scrollWheelZoom:true}).setView(CENTER, 13);
+        addTiles(m);
+        const heat = L.heatLayer(data, {radius:25, blur:18, gradient:grad}).addTo(m);
+        data.forEach(pt => L.circleMarker([pt[0], pt[1]], {radius:4, color:'#fff', fillColor:'#fff', fillOpacity:0.8}).addTo(m).bindPopup(`Intensity: ${Math.round(pt[2]*100)}`));
+        // slight pulse
+        setInterval(()=> heat.setLatLngs(data.map(pt=>[pt[0],pt[1], pt[2]*(0.8 + Math.random()*0.5)])), 3000);
+        return m;
+      };
+      mapAir   = make('map-air',   DEMO.air,   {0.2:'blue',0.4:'cyan',0.6:'lime',0.8:'orange',1:'red'});
+      mapMicro = make('map-micro', DEMO.micro, {0.2:'#6a00ff',0.4:'#b400ff',0.6:'#ff4dd2',0.8:'#ff66ff',1:'#ff1493'});
+      mapNoise = make('map-noise', DEMO.noise, {0.2:'#ffee58',0.4:'#ffb74d',0.6:'#ff8a65',0.8:'#ff5252',1:'#b71c1c'});
+      mapWater = make('map-water', DEMO.water, {0.2:'#00ffff',0.4:'#1de9b6',0.6:'#76ff03',0.8:'#00c853',1:'#00695c'});
+      mapSoil  = make('map-soil',  DEMO.soil,  {0.2:'#a0522d',0.4:'#8b4513',0.6:'#556b2f',0.8:'#2e7d32',1:'#1b5e20'});
+    }
+    function invalidateAllMaps(){
+      [mapAir,mapMicro,mapNoise,mapWater,mapSoil].forEach(m=> m && m.invalidateSize());
+    }
+    let mapsInited=false;
+    function lazyInitHeatmaps(){ if(!mapsInited){ initHeatmaps(); mapsInited=true; } }
+
+    // ---------- Action Engine ----------
+    const SCHEDULE_KEY = 'cp_schedule_v1';
+    function hotspotToActions(layer, pt){
+      const [lat,lng] = pt; const where = `(${lat.toFixed(3)}, ${lng.toFixed(3)})`;
+      if(layer==='air') return [
+        {title:'Car-free hour pilot',desc:`Run car-free hour near ${where}`,impact:8,dept:'Traffic'},
+        {title:'Plant windward trees',desc:`Plant saplings near ${where}`,impact:6,dept:'Forestry'}
+      ];
+      if(layer==='micro') return [
+        {title:'Drain mesh campaign',desc:`Install meshes near ${where}`,impact:9,dept:'Water'}
+      ];
+      if(layer==='noise') return [
+        {title:'Quiet zone enforcement',desc:`Enforce quiet near ${where}`,impact:7,dept:'Police'}
+      ];
+      if(layer==='water') return [
+        {title:'Mobile water testing',desc:`Test taps near ${where}`,impact:8,dept:'Water Board'}
+      ];
+      if(layer==='soil') return [
+        {title:'Compost hub setup',desc:`Setup compost hub near ${where}`,impact:7,dept:'Waste'}
+      ];
+      return [];
+    }
+    function renderActionSuggestions(layer){
+      const out = q('#action-suggestions'); out.innerHTML = '';
+      const top = DEMO[layer].slice().sort((a,b)=>b[2]-a[2]).slice(0,3);
+      top.forEach(pt=>{
+        hotspotToActions(layer,pt).forEach(item=>{
+          const el = document.createElement('div'); el.className='q-card';
+          el.innerHTML = `<h4 style="margin:0">${item.title}</h4><div class="muted">${item.desc}</div><div style="margin-top:8px">Dept: ${item.dept} • Impact +${item.impact}</div><div style="margin-top:8px"><button class="btn schedule">Schedule</button></div>`;
+          el.querySelector('.schedule').addEventListener('click', ()=> scheduleAction(item));
+          out.appendChild(el);
+        });
+      });
+    }
+    function scheduleAction(item){
+      const arr = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '[]');
+      arr.push({...item, ts: Date.now()});
+      localStorage.setItem(SCHEDULE_KEY, JSON.stringify(arr));
+      renderScheduled();
+      addPoints(4);
+    }
+    function renderScheduled(){
+      const ul = q('#scheduled'); const arr = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '[]');
+      ul.innerHTML = arr.map(a=>`<li>✅ ${a.title} — ${a.dept} • +${a.impact}</li>`).join('') || '<li>No scheduled actions</li>';
+      const byDay = {};
+      arr.forEach(a=>{ const d = new Date(a.ts).toLocaleDateString(); byDay[d] = (byDay[d] || 0) + a.impact; });
+      const labels = Object.keys(byDay); const data = labels.map(k=>byDay[k]);
+      const ctx = q('#impactChart').getContext('2d');
+      if(window.impactChart) window.impactChart.destroy();
+      window.impactChart = new Chart(ctx, { type:'line', data:{ labels, datasets:[{label:'Planned Impact', data, borderColor:'#00ffd0'}] } });
+    }
+    function renderActionsDefault(){
+      renderActionSuggestions('air');
+      qAll('.pill').forEach(p=>p.addEventListener('click', ()=>{
+        qAll('.pill').forEach(x=>x.classList.remove('active'));
+        p.classList.add('active');
+        renderActionSuggestions(p.dataset.layer);
+      }));
+    }
+    q('#clear-sched')?.addEventListener('click', ()=>{ localStorage.removeItem(SCHEDULE_KEY); renderScheduled(); });
+
+    // ---------- Report map & form ----------
+    let reportMap=null, repLayer=null;
+    function initReportMap(){
+      reportMap = L.map('map-report').setView(CENTER,13);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution:'&copy; CARTO' }).addTo(reportMap);
+      reportMap.on('click', e => { q('#rep-lat').value = e.latlng.lat.toFixed(6); q('#rep-lng').value = e.latlng.lng.toFixed(6); });
+      renderReports();
+    }
+    function lazyInitReportMap(){ if(!reportMap){ initReportMap(); } }
+    const REP_KEY = 'cp_reports_v1';
+    function renderReports(){
+      const arr = JSON.parse(localStorage.getItem(REP_KEY) || '[]');
+      q('#report-list').innerHTML = arr.map(r=>`<li>📍 <strong>${r.type}</strong> ${escapeHtml(r.desc)} (${r.lat.toFixed(3)}, ${r.lng.toFixed(3)})</li>`).join('') || '<li>No reports</li>';
+      if(reportMap){
+        if(repLayer) repLayer.remove();
+        repLayer = L.layerGroup(arr.map(r=>L.marker([r.lat,r.lng]).bindPopup(`<b>${r.type}</b><br>${escapeHtml(r.desc)}`))).addTo(reportMap);
+      }
+    }
+    q('#report-form')?.addEventListener('submit', e=>{
+      e.preventDefault();
+      const type = q('#rep-type').value, desc = q('#rep-desc').value.trim();
+      const lat = parseFloat(q('#rep-lat').value), lng = parseFloat(q('#rep-lng').value);
+      if(!desc || isNaN(lat) || isNaN(lng)) return alert('Fill all fields');
+      const arr = JSON.parse(localStorage.getItem(REP_KEY) || '[]'); arr.push({type,desc,lat,lng,ts:Date.now()}); localStorage.setItem(REP_KEY, JSON.stringify(arr));
+      q('#report-form').reset(); renderReports(); alert('Report saved (demo).');
+    });
+    const escapeHtml = (s)=> s.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+
+    // ---------- Quiz + Leaderboard ----------
+    const baseQs = [
+      {q:'Which reduces air pollution most?', a:['Plant trees','Burn fuel','Ignore it','Amplify noise'], c:0},
+      {q:'Microplastics mainly hurt?', a:['Humans','Animals','Both','None'], c:2},
+      {q:'Safe long exposure noise?', a:['60–70 dB','90 dB','110 dB','30 dB'], c:0},
+      {q:'Which helps wildfire tracking?', a:['NASA FIRMS','Hubble','Voyager','JWST'], c:0},
+      {q:'AQI stands for?', a:['Air Quality Index','Aqua Quick Info','Air Quick Insight','Atmos Quality'], c:0},
+      {q:'PM2.5 are particles ≤', a:['2.5 μm','2.5 mm','25 μm','0.25 μm'], c:0},
+      {q:'Eutrophication from?', a:['Nutrient runoff','Meteorites','Wind','Tides'], c:0},
+      {q:'Soil health boosted by?', a:['Compost','Over-fertilize','Oil spill','Salt'], c:0},
+      {q:'Ground-level ozone is?', a:['Pollutant','Good','Harmless','Food'], c:0},
+      {q:'Best household step vs plastic?', a:['Use reusable','Burn it','Dump it','Ignore'], c:0},
+    ];
+    const QUESTION_BANK = (() => {
+      const gen = [];
+      for (let i = 0; i < 490; i++) {
+        const idx = i % baseQs.length;
+        const variantNum = Math.floor(i / 10) + 1;
+        gen.push({ q: `${baseQs[idx].q} (v${variantNum})`, a: [...baseQs[idx].a], c: baseQs[idx].c });
+      }
+      return baseQs.concat(gen); // 500
+    })();
+
+    let currentQuiz = [];
+    q('#start')?.addEventListener('click', ()=>{
+      const name = q('#player').value.trim();
+      if(!name) return alert('Enter your name');
+      currentQuiz = pickRandom(QUESTION_BANK, 10);
+      renderQuiz(currentQuiz);
+      q('#submit-quiz').disabled = false;
+      q('#quiz-progress').style.width = '0%';
+      q('#quiz-score').textContent = '';
+    });
+
+    function pickRandom(arr,n){
+      const a = arr.slice(); const out=[];
+      while(out.length<n && a.length){
+        out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);
+      }
+      return out;
+    }
+
+    function renderQuiz(set){
+      const area = q('#quiz-area'); area.innerHTML = '';
+      set.forEach((qObj,i)=>{
+        const wrapper = document.createElement('div'); wrapper.className='q-card';
+        wrapper.innerHTML = `<h4>${i+1}. ${qObj.q}</h4>` + qObj.a.map((opt,j)=>`<label style="display:block;margin:.25rem 0"><input type="radio" name="q${i}" value="${j}"> ${opt}</label>`).join('');
+        wrapper.addEventListener('change', ()=> {
+          const c = area.querySelectorAll('input[type=radio]:checked').length;
+          q('#quiz-progress').style.width = (c*10)+'%';
+        });
+        area.appendChild(wrapper);
+      });
+    }
+
+    q('#submit-quiz')?.addEventListener('click', ()=>{
+      const filled = q('#quiz-area').querySelectorAll('input[type=radio]:checked').length;
+      if(filled < 10) return alert('Answer all 10 questions');
+      let score = 0;
+      currentQuiz.forEach((qObj,i)=> {
+        const v = parseInt(document.querySelector(`input[name=q${i}]:checked`).value,10);
+        if(v === qObj.c) score++;
+      });
+      q('#quiz-score').textContent = `Score: ${score}/10`;
+      saveScore(q('#player').value.trim(), score);
+      addPoints(score);
+      loadLeaderboard();
+      renderBadges();
+    });
+
+    const LB_KEY = 'cp_leaderboard_v1';
+    function saveScore(name, score){
+      const arr = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
+      arr.push({name, score, ts: Date.now()});
+      localStorage.setItem(LB_KEY, JSON.stringify(arr));
+    }
+    function loadLeaderboard(){
+      const body = q('#lb-body');
+      const arr = JSON.parse(localStorage.getItem(LB_KEY) || '[]').sort((a,b)=>b.score-a.score).slice(0,10);
+      body.innerHTML = arr.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${new Date(r.ts).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="4">No scores yet</td></tr>';
+    }
+
+    // ---------- Missions ----------
+    function loadMissions(){
+      const list = ['Mask advisory during high AQI','Quiet hours in hotspot wards','Install drain meshes in markets','Plant 200 roadside trees','Mobile water testing'];
+      q('#missions').innerHTML = list.map(m=>`<li>🎯 ${m}</li>`).join('');
+    }
+
+    // ---------- Emergency ----------
+    q('#btn-emergency')?.addEventListener('click', ()=> {
+      alert('EMERGENCY ACTION (demo):\n- Broadcast advisory to affected wards\n- Recommend masks, avoid outdoor activity\n- Dispatch mobile testing teams\n(Integrate SMS/Push gateway in production)');
+    });
+
+    // ---------- Points & Badges ----------
+    const PTS_KEY = 'cp_points_v1';
+    const getPoints = ()=> parseInt(localStorage.getItem(PTS_KEY) || '0', 10);
+    const setPoints = (v)=> { localStorage.setItem(PTS_KEY, String(v)); updatePointsUI(); };
+    const addPoints = (v)=> setPoints(getPoints()+v);
+    function updatePointsUI(){
+      const el = q('#user-points');
+      if(el) el.textContent = fmt(getPoints());
+    }
+    function renderBadges(){
+      const p = getPoints();
+      const wrap = q('#badge-wrap');
+      if(!wrap) return;
+      wrap.innerHTML = '';
+      [
+        {need:10, name:'Eco Starter', icon:'🌱'},
+        {need:50, name:'Eco Hero', icon:'💚'},
+        {need:100, name:'City Guardian', icon:'🛡️'},
+        {need:200, name:'Planet Champion', icon:'🏆'},
+      ].forEach(b=>{
+        const unlocked = p>=b.need;
+        const div = document.createElement('div');
+        div.className='badge';
+        div.style.opacity = unlocked? '1' : '.45';
+        div.innerHTML = `${b.icon} ${b.name} — ${b.need} pts`;
+        wrap.appendChild(div);
+      });
+    }
+
+    // ---------- Awareness ----------
+    let awarenessInited=false;
+    function initAwareness(){
+      const stories = [
+        'A child in Sylhet breathes air 2× dirtier than WHO limits. Your mask donation can protect a school.',
+        'Farmers in Sunamganj face flash floods—your tree today is shade & rain tomorrow.',
+        'Waste clogging drains worsens floods—segregate plastic to keep canals flowing.',
+        'Heatwaves are breaking records—cool roofs and rooftop gardens can lower temps.'
+      ];
+      q('#awareness-stories').innerHTML = stories.map(s=>`<li class="q-card">💔 ${s}</li>`).join('');
+      q('#btn-pledge').addEventListener('click', ()=>{ addPoints(5); alert('Pledge saved! +5 pts'); renderBadges(); updatePointsUI(); });
+      const ctx = q('#awarenessChart').getContext('2d');
+      new Chart(ctx, { type:'line',
+        data:{labels:['2016','2017','2018','2019','2020','2021','2022','2023'],
+          datasets:[{label:'Global Temp Anomaly (°C)', data:[0.86,0.91,0.98,0.95,1.02,1.10,1.12,1.17], borderColor:'#ff6b6b', tension:.35}]},
+        options:{plugins:{legend:{labels:{color:'#cfefff'}}}, scales:{x:{ticks:{color:'#9ec3e3'}}, y:{ticks:{color:'#9ec3e3'}}}}
+      });
+    }
+    function lazyInitAwareness(){ if(!awarenessInited){ initAwareness(); awarenessInited=true; } }
+
+    // ---------- Kids ----------
+    let kidsInited=false;
+    function initKids(){
+      qAll('[data-kid]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const ok = btn.getAttribute('data-kid')==='correct';
+          q('#kids-result').textContent = ok ? '✅ Great job! +3 pts' : '❌ Try again!';
+          if(ok){ addPoints(3); renderBadges(); updatePointsUI(); }
+        });
+      });
+    }
+    function lazyInitKids(){ if(!kidsInited){ initKids(); kidsInited=true; } }
+
+    // ---------- City Hub (ALL MAJOR CITIES) ----------
+    // list (many cities & district HQs) — Sylhet default selected
+    const BD_CITIES = [
+      {n:'Sylhet',        c:[24.8949,91.8687]},
+      {n:'Dhaka',         c:[23.8103,90.4125]},
+      {n:'Chattogram',    c:[22.3569,91.7832]},
+      {n:'Rajshahi',      c:[24.3745,88.6042]},
+      {n:'Khulna',        c:[22.8456,89.5403]},
+      {n:'Barishal',      c:[22.7010,90.3535]},
+      {n:'Rangpur',       c:[25.7439,89.2752]},
+      {n:'Mymensingh',    c:[24.7471,90.4203]},
+      {n:'Cumilla',       c:[23.4607,91.1809]},
+      {n:'Gazipur',       c:[23.9999,90.4203]},
+      {n:'Narayanganj',   c:[23.6238,90.5000]},
+      {n:'Kushtia',       c:[23.9013,89.1206]},
+      {n:'Jessore',       c:[23.1778,89.1800]},
+      {n:'Bogura',        c:[24.8465,89.3773]},
+      {n:'Pabna',         c:[24.0064,89.2372]},
+      {n:'Tangail',       c:[24.2513,89.9167]},
+      {n:'Faridpur',      c:[23.6070,89.8420]},
+      {n:'Noakhali',      c:[22.8696,91.0993]},
+      {n:'Feni',          c:[23.0159,91.3976]},
+      {n:'Brahmanbaria',  c:[23.9571,91.1119]},
+      {n:'Habiganj',      c:[24.3772,91.4129]},
+      {n:'Moulvibazar',   c:[24.4829,91.7774]},
+      {n:'Sunamganj',     c:[25.0658,91.3950]},
+      {n:'Netrakona',     c:[24.8835,90.7316]},
+      {n:'Kishoreganj',   c:[24.4449,90.7766]},
+      {n:'Sherpur',       c:[25.0205,90.0186]},
+      {n:'Jamalpur',      c:[24.9190,89.9481]},
+      {n:'Gaibandha',     c:[25.3297,89.5430]},
+      {n:'Dinajpur',      c:[25.6270,88.6332]},
+      {n:'Thakurgaon',    c:[26.0330,88.4693]},
+      {n:'Nilphamari',    c:[25.9310,88.8560]},
+      {n:'Panchagarh',    c:[26.3411,88.5542]},
+      {n:'Naogaon',       c:[24.8070,88.9400]},
+      {n:'Natore',        c:[24.4206,89.0003]},
+      {n:'Joypurhat',     c:[25.0968,89.0227]},
+      {n:'Sirajganj',     c:[24.4530,89.7000]},
+      {n:'Chapainawabganj',c:[24.5965,88.2775]},
+      {n:'Chuadanga',     c:[23.6405,88.8413]},
+      {n:'Jhenaidah',     c:[23.5449,89.1530]},
+      {n:'Magura',        c:[23.4850,89.4190]},
+      {n:'Meherpur',      c:[23.7622,88.6318]},
+      {n:'Narail',        c:[23.1725,89.5120]},
+      {n:'Satkhira',      c:[22.7085,89.0710]},
+      {n:'Bagerhat',      c:[22.6570,89.7900]},
+      {n:'Pirojpur',      c:[22.5797,89.9750]},
+      {n:'Jhalokati',     c:[22.6406,90.1987]},
+      {n:'Bhola',         c:[22.6873,90.6440]},
+      {n:'Barguna',       c:[22.1533,90.1260]},
+      {n:'Patuakhali',    c:[22.3596,90.3293]},
+      {n:'Lakshmipur',    c:[22.9420,90.8400]},
+      {n:'Cox’s Bazar',   c:[21.4272,92.0058]},
+      {n:'Bandarban',     c:[22.1953,92.2184]},
+      {n:'Khagrachari',   c:[23.1193,91.9847]},
+      {n:'Rangamati',     c:[22.7324,92.2985]},
+      {n:'Madaripur',     c:[23.1717,90.2094]},
+      {n:'Gopalganj',     c:[23.0051,89.8266]},
+      {n:'Shariatpur',    c:[23.2423,90.4348]},
+      {n:'Munshiganj',    c:[23.5436,90.5270]},
+      {n:'Manikganj',     c:[23.8601,90.0047]},
+      {n:'Rajbari',       c:[23.7570,89.6444]},
+      {n:'Tangail',       c:[24.2513,89.9167]},
+      {n:'Narsingdi',     c:[23.9207,90.7180]},
+      {n:'Gazipur (Tongi)',c:[23.8917,90.4021]}
+    ];
+    const CITY_KEY = 'cp_city_v1';
+    const CITY_COORDS = Object.fromEntries(BD_CITIES.map(x=>[x.n,x.c]));
+
+    let cityMap=null, cityHeat=null, cityHubInited=false;
+    function initCityHub(){
+      // populate select once
+      const sel = q('#city-select');
+      if(sel.options.length === 0){
+        const frag = document.createDocumentFragment();
+        BD_CITIES.forEach(c=>{
+          const o = document.createElement('option');
+          o.value = c.n; o.textContent = c.n; frag.appendChild(o);
+        });
+        sel.appendChild(frag);
+      }
+
+      // default to Sylhet if nothing saved
+      const saved = localStorage.getItem(CITY_KEY) || 'Sylhet';
+      sel.value = saved;
+      localStorage.setItem(CITY_KEY, saved);
+
+      q('#save-city').addEventListener('click', ()=>{
+        const v = sel.value;
+        if(!v) return alert('Select a city first');
+        localStorage.setItem(CITY_KEY, v);
+        alert('City saved: ' + v);
+        renderCitySummary();
+        drawCityMap();
+      });
+
+      // quick missions
+      qAll('#cityhub [data-mission]').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          const pts = parseInt(b.getAttribute('data-mission'),10);
+          addPoints(pts); renderBadges(); updatePointsUI();
+          alert(`Mission recorded! +${pts} pts`);
+        });
+      });
+
+      renderCitySummary();
+      drawCityMap();
+      updatePointsUI();
+    }
+    function lazyInitCityHub(){ if(!cityHubInited){ initCityHub(); cityHubInited=true; } }
+
+    function renderCitySummary(){
+      const city = localStorage.getItem(CITY_KEY) || 'Sylhet';
+      const el = q('#city-summary');
+      const userPts = getPoints();
+      const base = { Sylhet: 74, Dhaka: 68, Chattogram: 70, Rajshahi: 76, Khulna: 72 }[city] || 70;
+      const eco = clamp(Math.round(base + Math.min(userPts/12, 20)), 0, 100);
+      el.innerHTML = `City: <b>${city}</b><br>Community Eco Score (demo + your influence): <b>${eco}</b>/100<br>Your total points: <b>${userPts}</b>`;
+    }
+    function drawCityMap(){
+      const city = localStorage.getItem(CITY_KEY) || 'Sylhet';
+      const center = CITY_COORDS[city] || CENTER;
+      if(!cityMap){
+        cityMap = L.map('map-city').setView(center, 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution:'&copy; CARTO' }).addTo(cityMap);
+      } else {
+        cityMap.setView(center, 12);
+      }
+      // heat influenced by user points
+      const p = getPoints();
+      const scale = clamp((p/100), 0.2, 1.4);
+      const points = [
+        [center[0]+0.02, center[1]+0.02, 0.5*scale],
+        [center[0]-0.01, center[1]-0.01, 0.7*scale],
+        [center[0]+0.01, center[1]-0.02, 0.6*scale],
+      ];
+      if(cityHeat){ cityHeat.setLatLngs(points); }
+      else { cityHeat = L.heatLayer(points, {radius:25, blur:18}).addTo(cityMap); }
+      setTimeout(()=> cityMap.invalidateSize(), 50);
+    }
+
+    // ---------- Global Compare ----------
+    let globalInited=false;
+    function initGlobalCompare(){
+      const ctx = q('#globalChart').getContext('2d');
+      const cities = ['Sylhet','Dhaka','Chattogram','Rajshahi','Khulna'];
+      const aqi = [120,160,130,95,110];
+      const noise = [64,72,66,60,63];
+      const water = [62,55,62,70,58];
+      const soil = [68,60,64,72,65];
+      new Chart(ctx, {
+        type:'radar',
+        data:{
+          labels:['AQI (↓ better)','Noise (↓ better)','Water (↑ better)','Soil (↑ better)'],
+          datasets: cities.map((c,i)=>({
+            label:c,
+            data:[-aqi[i], -noise[i], water[i], soil[i]],
+            borderWidth:2,
+            fill:false
+          }))
+        },
+        options:{plugins:{legend:{labels:{color:'#cfefff'}}}, scales:{ r:{angleLines:{color:'#224B64'}, grid:{color:'#12364c'}, pointLabels:{color:'#9ec3e3'}}}}
+      });
+    }
+    function lazyInitGlobalCompare(){ if(!globalInited){ initGlobalCompare(); globalInited=true; } }
+
+    // ---------- Initialization ----------
+    function initAll(){
+      try{
+        updateKPIs();
+        loadNasaDemo();
+        loadMissions();
+        renderActionsDefault();
+        renderScheduled();
+        loadLeaderboard();
+        renderBadges();
+        // init heatmaps on first load so dashboard isn’t heavy; we’ll lazy-init when opening Maps
+      }catch(e){
+        console.error('Init error:', e);
+        alert('Init error: ' + e.message);
+      }
+    }
+    initAll();
+  });
+  </script>
+</body>
+</html>
